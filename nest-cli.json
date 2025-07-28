@@ -1,0 +1,24 @@
+{
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/{project}/src",
+  "projects": {
+    "auth-svc": {
+      "type": "application",
+      "root": "apps/auth-svc",
+      "sourceRoot": "apps/auth-svc/src",
+      "entryFile": "main"
+    },
+    "api-gateway": {
+      "type": "application",
+      "root": "apps/api-gateway",
+      "sourceRoot": "apps/api-gateway/src",
+      "entryFile": "main"
+    },
+    "backoffice-svc": {
+      "type": "application",
+      "root": "apps/backoffice-svc",
+      "sourceRoot": "apps/backoffice-svc/src",
+      "entryFile": "main"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "backoffice-svc",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {
+      "executor": "@nx/nest:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/backoffice-svc",
+        "main": "apps/backoffice-svc/main.ts"
+      }
+    },
+    "serve": {
+      "executor": "@nx/nest:serve",
+      "options": {
+        "buildTarget": "backoffice-svc:build"
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["apps/backoffice-svc/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "options": {
+        "jestConfig": "apps/backoffice-svc/jest.config.ts"
+      }
+    }
+  }
+}

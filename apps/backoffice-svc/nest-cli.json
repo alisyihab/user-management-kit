@@ -1,0 +1,18 @@
+{
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/backoffice-svc/src",
+  "projects": {
+    "backoffice-svc": {
+      "type": "application",
+      "root": "apps/backoffice-svc",
+      "entryFile": "main",
+      "sourceRoot": "apps/backoffice-svc/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/backoffice-svc/tsconfig.json"
+      }
+    }
+  },
+  "compilerOptions": {
+    "webpack": false
+  }
+}

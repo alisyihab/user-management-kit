@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id         String       @id @default(uuid())
+  email      String       @unique
+  username   String       @unique
+  name       String
+  password   String
+  status     UserStatus   @default(ACTIVE)
+  roles      Role[]       @relation("UserRoles")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  AuditTrail AuditTrail[]
+
+  @@map("users")
+}
+
+model Role {
+  id                String           @id @default(uuid())
+  name              String           @unique
+  has_notifications Boolean          @default(false)
+  users             User[]           @relation("UserRoles")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  permissions       RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  module      String
+  description String           @default("")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  role          Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  role_id       String     @map("role_id")
+  permission    Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  permission_id String     @map("permission_id")
+
+  @@id([role_id, permission_id])
+  @@map("role_permissions")
+}
+
+model AuditTrail {
+  id          String   @id @default(uuid())
+  entity      String // name entities changes, example "Product", "Inbound"
+  entityId    String // ID from entities changes
+  action      String // "CREATE", "UPDATE", "DELETE"
+  changes     Json // detail changes (before & after)
+  description String?
+  performedBy String?
+  performer   User?    @relation(fields: [performedBy], references: [id], onDelete: SetNull)
+  performedAt DateTime @default(now())
+
+  @@map("audit_trails")
+}

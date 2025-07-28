@@ -1,0 +1,88 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-user_kit_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-user_kit_pass}
+      POSTGRES_DB: ${DB_NAME:-user_kit_db}
+    ports:
+      - "5431:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-user_kit_user} -d ${DB_NAME:-user_kit_db}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - user_kit-net
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/api-gateway/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    environment:
+      - PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+    networks:
+      - user_kit-net
+
+  auth-svc:
+    build:
+      context: .
+      dockerfile: docker/auth-svc/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - user_kit-net
+    restart: on-failure
+
+  backoffice-svc:
+    build:
+      context: .
+      dockerfile: docker/backoffice-svc/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - user_kit-net
+    restart: on-failure
+
+  seeder:
+    build:
+      context: .
+      dockerfile: docker/seed-runner.Dockerfile
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - db
+    networks:
+      - user_kit-net
+    profiles:
+      - seeder
+
+volumes:
+  postgres-data:
+
+networks:
+  user_kit-net:
+    driver: bridge

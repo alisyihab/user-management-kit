@@ -1,0 +1,18 @@
+{
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/auth-svc/src",
+  "projects": {
+    "auth-svc": {
+      "type": "application",
+      "root": "apps/auth-svc",
+      "entryFile": "main",
+      "sourceRoot": "apps/auth-svc/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/auth-svc/tsconfig.json"
+      }
+    }
+  },
+  "compilerOptions": {
+    "webpack": false
+  }
+}
