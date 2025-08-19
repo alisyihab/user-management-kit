@@ -246,7 +246,7 @@ AWS_BUCKET_NAME=your_bucket_name
 # Konfigurasi ImageKit
 IMAGEKIT_PUBLIC_KEY=your_imagekit_public_key
 IMAGEKIT_PRIVATE_KEY=your_imagekit_private_key
-IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id
+IMAGEKIT_URL=https://ik.imagekit.io/your_imagekit_id
 
 # Konfigurasi Cloudinary
 CLOUDINARY_CLOUD_NAME=your_cloud_name
