@@ -246,7 +246,7 @@ AWS_BUCKET_NAME=your_bucket_name
 # ImageKit Configuration
 IMAGEKIT_PUBLIC_KEY=your_imagekit_public_key
 IMAGEKIT_PRIVATE_KEY=your_imagekit_private_key
-IMAGEKIT_URL=https://ik.imagekit.io/your_imagekit_id
+IMAGEKIT_URL=https://ik.imagekit.io/vdbjxrahz
 
 # Cloudinary Configuration
 CLOUDINARY_CLOUD_NAME=your_cloud_name
