@@ -32,4 +32,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsUUID()
   roleId?: string;
+
+  @ApiPropertyOptional({ type: 'string', format: 'binary', required: false })
+  @IsOptional()
+  image?: any;
 }

@@ -25,4 +25,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
   roleId: string;
+
+  @ApiProperty({ type: 'string', format: 'binary', required: false })
+  image?: any;
 }

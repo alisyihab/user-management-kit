@@ -7,9 +7,10 @@ import {
   AuditTrailService,
   createFetchOldEntityMiddleware,
 } from '@libs/audit-trail';
+import { UploadModule } from '@libs/upload';
 
 @Module({
-  imports: [PrismaModule, CommonAuthModule],
+  imports: [PrismaModule, CommonAuthModule, UploadModule],
   controllers: [UserController],
   providers: [UserService, PermissionGuard, AuditTrailService],
   exports: [UserService],

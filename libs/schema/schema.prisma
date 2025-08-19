@@ -21,6 +21,8 @@ model User {
   password   String
   status     UserStatus   @default(ACTIVE)
   roles      Role[]       @relation("UserRoles")
+  photo      String?
+  photoID    String?      @map("photo_id")
   createdAt  DateTime     @default(now()) @map("created_at")
   updatedAt  DateTime     @updatedAt @map("updated_at")
   AuditTrail AuditTrail[]

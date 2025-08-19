@@ -6,12 +6,16 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as multer from 'multer';
 import { UserService } from './user.service';
 import {
   PermissionGuard,
@@ -25,13 +29,14 @@ import {
   GlobalResponse,
 } from '@libs/common/src';
 import { UserDto } from './dto/response/user-list.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserDetailDto } from './dto/response/user.dto';
 import { CreateUserDto } from './dto/request/create-user.dto';
 import { UpdateUserDto } from './dto/request/update-user.dto';
 import { UserFilter } from './dto/request/index-filter.dto';
 import { UserStatus } from '@prisma/client';
 import { Audit, AuditAction, AuditTrailInterceptor } from '@libs/audit-trail';
+import { Express } from 'express';
 
 @ApiTags('Users')
 @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -79,8 +84,9 @@ export class UserController {
   @ApiResponseModel(null, 201)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create new user' })
+  @ApiConsumes('multipart/form-data')
   @Post()
-    @Audit({
+  @Audit({
     entity: 'Users',
     action: AuditAction.CREATE,
     getChanges: (_, result) => ({
@@ -88,8 +94,28 @@ export class UserController {
       after: result,
     }),
   })
-  async store(@Body() dto: CreateUserDto) {
-    const response = await this.userService.createUser(dto);
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: multer.memoryStorage(),
+    }),
+  )
+  async store(
+    @Body() dto: CreateUserDto,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: /image\/(jpeg|jpg|png|webp|gif)/,
+        })
+        .addMaxSizeValidator({
+          maxSize: 2 * 1024 * 1024, // 2MB,
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    file?: Express.Multer.File,
+  ) {
+    const response = await this.userService.createUser(dto, file);
 
     return successResponse(null, response, null, 201);
   }
@@ -111,8 +137,24 @@ export class UserController {
       after: result,
     }),
   })
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    const user = await this.userService.updateUser(id, dto);
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: multer.memoryStorage(),
+    }),
+  )
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: /image\/(jpeg|jpg|png|webp|gif)/ })
+        .addMaxSizeValidator({ maxSize: 2 * 1024 * 1024 }) // 2MB
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
+    )
+    file?: Express.Multer.File,
+  ) {
+    const user = await this.userService.updateUser(id, dto, file);
 
     return successResponse(user, 'User successfully updated', null, 200);
   }

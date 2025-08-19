@@ -30,6 +30,10 @@ A NestJS-based monorepo following a microservices architecture, featuring built-
     - [2. 📦 Run Seeder (One-Time Only)](#2--run-seeder-one-time-only)
     - [3. 🚀 Start All Services (Without Seeder)](#3--start-all-services-without-seeder)
     - [4. 🛑 Stop All Services](#4--stop-all-services)
+  - [☁️ Cloud Upload (S3 / ImageKit / Cloudinary)](#️-cloud-upload-s3--imagekit--cloudinary)
+    - [.env Configuration](#env-configuration)
+    - [API Endpoints](#api-endpoints)
+    - [File Validation](#file-validation)
   - [📚 API Documentation](#-api-documentation)
   - [📜 Logging](#-logging)
   - [🧪 Testing](#-testing)
@@ -66,6 +70,7 @@ A NestJS-based monorepo following a microservices architecture, featuring built-
     │   ├── common/
     │   ├── schema/
     │   │   └── schema.prisma
+    │   ├── upload/
     │   └── ...
     ├── types/
     ├── scripts/
@@ -206,7 +211,78 @@ docker-compose down
 ```
 
 > 📝 **Note:**
-> Don’t forget to copy `.env-example` into `.env` in the root and each service folder before running the steps above.
+> Don't forget to copy `.env-example` into `.env` in the root and each service folder before running the steps above.
+
+---
+
+## ☁️ Cloud Upload (S3 / ImageKit / Cloudinary)
+
+This project supports image upload to cloud storage via `libs/upload`.
+
+**Supported providers**: `s3`, `imagekit`, `cloudinary`. Set provider in `.env` using `STORAGE_PROVIDER`.
+
+Upload service returns:
+```json
+{
+  "url": "...",
+  "id": "..."
+}
+```
+
+Where `id` is stored as `photoID` (DB) to manage delete/replace operations.
+
+### .env Configuration
+
+```bash
+# Storage Provider (required)
+STORAGE_PROVIDER=s3
+
+# AWS S3 Configuration
+AWS_ACCESS_KEY=your_key
+AWS_SECRET_KEY=your_secret
+AWS_REGION=ap-southeast-1
+AWS_BUCKET_NAME=your_bucket_name
+
+# ImageKit Configuration
+IMAGEKIT_PUBLIC_KEY=your_imagekit_public_key
+IMAGEKIT_PRIVATE_KEY=your_imagekit_private_key
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id
+
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+# Upload Settings
+UPLOAD_FOLDER=users
+```
+
+### API Endpoints
+
+**User Management with File Upload:**
+
+- `POST /backoffice/users` (multipart/form-data) — Create user with optional `photo` file
+- `PATCH /backoffice/users/:id` (multipart/form-data) — Update user with optional `photo` file
+- `POST /backoffice/users/:id/photo` — Replace user photo only
+- `DELETE /backoffice/users/:id/photo` — Delete user photo and clear DB fields
+
+**Example Request (multipart/form-data):**
+```bash
+curl -X POST http://localhost:3000/backoffice/users \
+  -F "username=johndoe" \
+  -F "email=john@example.com" \
+  -F "name=John Doe" \
+  -F "password=password123" \
+  -F "roleId=role-uuid-here" \
+  -F "photo=@/path/to/image.jpg"
+```
+
+### File Validation
+
+- **Allowed formats**: `jpeg`, `jpg`, `png`, `webp`, `gif`
+- **Maximum file size**: `5MB` (configurable)
+- **Storage method**: Files handled in memory using `multer.memoryStorage()`
+- **Processing**: Files are converted to base64 for cloud upload
 
 ---
 
@@ -315,6 +391,14 @@ DATABASE_URL=
 JWT_SECRET=
 SERVICE_INTERNAL_KEY=
 ELASTICSEARCH_URL=
+
+# Cloud Upload Configuration
+STORAGE_PROVIDER=s3
+AWS_ACCESS_KEY=
+AWS_SECRET_KEY=
+AWS_REGION=
+AWS_BUCKET_NAME=
+UPLOAD_FOLDER=users
 ```
 
 **Remember** to load environment variables before running each service:
@@ -342,6 +426,7 @@ ELASTICSEARCH_URL=
   - DTOs (Data Transfer Objects)
   - Guards
   - Middleware
+  - Upload strategies
   This keeps code modular and avoids duplication.
 
 ### API Documentation
@@ -492,6 +577,7 @@ ELASTICSEARCH_URL=
 - **Code Comments**: Add comments for complex logic to aid maintainability.
 - **Testing**: Write unit tests for each module to ensure functionality.
 - **Environment Variables**: Keep sensitive configs in `.env`; avoid hardcoding.
+- **File Upload**: Use appropriate field names in multipart forms (e.g., `photo` for user images).
 
 ---
 
@@ -502,3 +588,8 @@ ELASTICSEARCH_URL=
 - **Swagger Missing**: Start the gateway and verify `/docs-json` endpoints for each service.
 - **Permission Errors**: Confirm `@Permission` imports from `@libs/common/src`.
 - **Elasticsearch Logging Issues**: Verify `ELASTICSEARCH_URL` and that Elasticsearch is reachable.
+- **File Upload Issues**: 
+  - Check `STORAGE_PROVIDER` is set correctly in `.env`
+  - Verify cloud provider credentials are valid
+  - Ensure file format and size meet validation requirements
+  - Check multer configuration and field names match frontend

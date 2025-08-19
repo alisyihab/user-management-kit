@@ -1,17 +1,17 @@
 # 📦 User Management - Monorepo
 
-Monorepo berbasis NestJS yang mengikuti arsitektur layanan mikro, menampilkan RBAC (Kontrol Akses Berbasis Peran) bawaan dan dukungan Jejak Audit, yang terdiri dari:
+Monorepo berbasis NestJS yang mengikuti arsitektur mikroservis, dilengkapi dengan RBAC (Role-Based Access Control) dan dukungan Audit Trail, terdiri dari:
 
-- **`gateway`**: API Gateway dan aggregator Swagger.
-- **`auth-svc`**: Layanan untuk autentikasi dan otorisasi.
-- **`backoffice`**: Manajemen pengguna dan data internal.
+- **`gateway`**: API Gateway dan agregator Swagger.
+- **`auth-svc`**: Layanan autentikasi dan otorisasi.
+- **`backoffice`**: Manajemen pengguna dan layanan data internal.
 
 **Teknologi yang Digunakan**:
 
 - **pnpm** workspace  
-- **Prisma** (ORM, di `libs/schema`)  
-- **Winston** (+ Elasticsearch integration di gateway)  
-- **PM2** / **Docker** (deployment)
+- **Prisma** (ORM, terletak di `libs/schema`)  
+- **Winston** (dengan integrasi Elasticsearch di gateway)  
+- **PM2** / **Docker** (untuk deployment)
 
 ---
 
@@ -19,21 +19,25 @@ Monorepo berbasis NestJS yang mengikuti arsitektur layanan mikro, menampilkan RB
 
 - [📦 User Management - Monorepo](#-user-management---monorepo)
   - [📑 Daftar Isi](#-daftar-isi)
-  - [📁 Struktur Proyek](#-struktur-proyek)
-  - [🔧 Prasyarat](#-prasyarat)
+  - [📁 Struktur Project](#-struktur-project)
+  - [🔧 Prerequisites](#-prerequisites)
   - [🛠️ Setup](#️-setup)
   - [🚀 Menjalankan Aplikasi](#-menjalankan-aplikasi)
     - [Manual (Tanpa PM2/Docker)](#manual-tanpa-pm2docker)
-    - [Dengan PM2 (Dev Environment)](#dengan-pm2-dev-environment)
-    - [Dengan Docker Compose (Deploy)](#dengan-docker-compose-deploy)
+    - [Menggunakan PM2 (Dev Environment)](#menggunakan-pm2-dev-environment)
+    - [Menggunakan Docker Compose (Deployment)](#menggunakan-docker-compose-deployment)
     - [1. 🧱 Jalankan Database Saja](#1--jalankan-database-saja)
     - [2. 📦 Jalankan Seeder (Sekali Saja)](#2--jalankan-seeder-sekali-saja)
-    - [3. 🚀 Jalankan Semua Service (Tanpa Seeder)](#3--jalankan-semua-service-tanpa-seeder)
-    - [4. 🛑 Hentikan Semua Service](#4--hentikan-semua-service)
+    - [3. 🚀 Jalankan Semua Layanan (Tanpa Seeder)](#3--jalankan-semua-layanan-tanpa-seeder)
+    - [4. 🛑 Hentikan Semua Layanan](#4--hentikan-semua-layanan)
+  - [☁️ Cloud Upload (S3 / ImageKit / Cloudinary)](#️-cloud-upload-s3--imagekit--cloudinary)
+    - [Konfigurasi .env](#konfigurasi-env)
+    - [API Endpoints](#api-endpoints)
+    - [Validasi File](#validasi-file)
   - [📚 Dokumentasi API](#-dokumentasi-api)
   - [📜 Logging](#-logging)
   - [🧪 Testing](#-testing)
-    - [Unit Test per Service](#unit-test-per-service)
+    - [Unit Test per Layanan](#unit-test-per-layanan)
   - [📦 Build](#-build)
   - [Build Semua Sekaligus](#build-semua-sekaligus)
   - [🗂️ Konfigurasi Environment](#️-konfigurasi-environment)
@@ -41,19 +45,17 @@ Monorepo berbasis NestJS yang mengikuti arsitektur layanan mikro, menampilkan RB
     - [Prisma](#prisma)
     - [Code Sharing](#code-sharing)
     - [Dokumentasi API](#dokumentasi-api)
-    - [Permission Management](#permission-management)
+    - [Manajemen Permission](#manajemen-permission)
     - [Audit Trail](#audit-trail)
-  - [1. Import Module](#1-import-module)
-  - [2. Apply Middleware (for UPDATE / DELETE routes) pada module](#2-apply-middleware-for-update--delete-routes-pada-module)
-  - [3. Apply Interceptor \& Decorator in Controllers](#3-apply-interceptor--decorator-in-controllers)
     - [Tips Tambahan](#tips-tambahan)
   - [🛠️ Troubleshooting](#️-troubleshooting)
 
 ---
 
-## 📁 Struktur Proyek
+## 📁 Struktur Project
 
 ```plaintext
+
 └── user-management-kit/
     ├── apps/
     │   ├── api-gateway/
@@ -68,6 +70,7 @@ Monorepo berbasis NestJS yang mengikuti arsitektur layanan mikro, menampilkan RB
     │   ├── common/
     │   ├── schema/
     │   │   └── schema.prisma
+    │   ├── upload/
     │   └── ...
     ├── types/
     ├── scripts/
@@ -80,28 +83,27 @@ Monorepo berbasis NestJS yang mengikuti arsitektur layanan mikro, menampilkan RB
 
 ---
 
-## 🔧 Prasyarat
+## 🔧 Prerequisites
 
-Pastikan Anda telah menginstal:
+Pastikan Anda telah menginstall:
 
 - Node.js (v18 atau lebih baru)
 - pnpm (v10.12.4)
 - Docker dan Docker Compose (untuk deployment lokal)
-- Elasticsearch (untuk logging di `gateway`, sesuaikan dengan `ELASTICSEARCH_URL` di `.env`)
-- Database (sesuai dengan `DATABASE_URL` di `.env`)
-- Elasticsearch (untuk logging di `api-gateway`, sesuaikan dengan `ELASTICSEARCH_URL` di `.env`)
+- Elasticsearch (untuk logging gateway, konfigurasi `ELASTICSEARCH_URL` di `.env`)
+- Database (konfigurasi `DATABASE_URL` di `.env`)
 
 ---
 
 ## 🛠️ Setup
 
-1. **Install Dependensi**
+1. **Install Dependencies**
 
    ```bash
    pnpm install
    ```
 
-2. **Register existing apps**
+2. **Register Existing Apps**
 
    ```bash
    npx nx generate @nx/workspace:convert-to-nx-project --project=api-gateway --project-dir=apps/api-gateway
@@ -110,7 +112,7 @@ Pastikan Anda telah menginstal:
    ```
 
 3. **Generate Prisma Client**
-   Jalankan perintah ini setiap kali `schema.prisma` diubah:
+   Jalankan setiap kali `schema.prisma` berubah:
 
    ```bash
    pnpm prisma generate
@@ -118,14 +120,14 @@ Pastikan Anda telah menginstal:
    ```
 
 4. **Generate Permissions**
-   Untuk menghasilkan permission baru berdasarkan dekorator:
+   Untuk generate permission baru berdasarkan decorator:
 
    ```bash
    pnpm gen:permissions
    ```
 
 5. **Generate User**
-   Untuk seed user baru dengan role superadmin yang memiliki semua permission acces:
+   Untuk seed user superadmin baru dengan semua permission:
 
    ```bash
    pnpm db:user-seed
@@ -140,13 +142,13 @@ Pastikan Anda telah menginstal:
 
 ### Manual (Tanpa PM2/Docker)
 
-1. **Build semua service**
+1. **Build Semua Layanan**
 
    ```bash
    pnpm build:all
    ```
 
-2. **Jalankan service terpisah**
+2. **Jalankan Layanan Satu per Satu**
 
    ```bash
    pnpm start:gateway
@@ -154,7 +156,7 @@ Pastikan Anda telah menginstal:
    pnpm start:backoffice
    ```
 
-### Dengan PM2 (Dev Environment)
+### Menggunakan PM2 (Dev Environment)
 
 1. **Start PM2**
 
@@ -170,7 +172,7 @@ Pastikan Anda telah menginstal:
    pm2 logs
    ```
 
-### Dengan Docker Compose (Deploy)
+### Menggunakan Docker Compose (Deployment)
 
 ### 1. 🧱 Jalankan Database Saja
 
@@ -178,7 +180,7 @@ Pastikan Anda telah menginstal:
 docker-compose up -d db
 ```
 
-Ini akan menjalankan service `db` (PostgreSQL) di background.
+Ini akan menjalankan layanan `db` (PostgreSQL) di background.
 
 ### 2. 📦 Jalankan Seeder (Sekali Saja)
 
@@ -189,44 +191,115 @@ docker-compose --profile seeder run --rm seeder
 Seeder akan:
 
 - Generate Prisma Client
-- Deploy migration database
-- Menjalankan seed data awal :
+- Deploy database migration
+- Menjalankan seed data awal:
   - username: superadmin
   - password: password123
 
-### 3. 🚀 Jalankan Semua Service (Tanpa Seeder)
+### 3. 🚀 Jalankan Semua Layanan (Tanpa Seeder)
 
 ```bash
 docker-compose up -d
 ```
 
-Ini akan menjalankan semua service kecuali `seeder`.
+Ini akan menjalankan semua layanan kecuali `seeder`.
 
-### 4. 🛑 Hentikan Semua Service
+### 4. 🛑 Hentikan Semua Layanan
 
 ```bash
 docker-compose down
 ```
 
 > 📝 **Catatan:**
-> Jangan lupa untuk menyalin `.env-example` menjadi `.env` di root dan setiap service sebelum menjalankan langkah-langkah di atas.
+> Jangan lupa copy `.env-example` ke `.env` di root dan setiap folder layanan sebelum menjalankan langkah di atas.
+
+---
+
+## ☁️ Cloud Upload (S3 / ImageKit / Cloudinary)
+
+Project ini mendukung upload gambar ke cloud storage melalui `libs/upload`.
+
+**Provider yang didukung**: `s3`, `imagekit`, `cloudinary`. Set provider di `.env` menggunakan `STORAGE_PROVIDER`.
+
+Upload service mengembalikan:
+```json
+{
+  "url": "...",
+  "id": "..."
+}
+```
+
+Dimana `id` disimpan sebagai `photoID` (DB) untuk mengelola operasi delete/replace.
+
+### Konfigurasi .env
+
+```bash
+# Storage Provider (wajib)
+STORAGE_PROVIDER=s3
+
+# Konfigurasi AWS S3
+AWS_ACCESS_KEY=your_key
+AWS_SECRET_KEY=your_secret
+AWS_REGION=ap-southeast-1
+AWS_BUCKET_NAME=your_bucket_name
+
+# Konfigurasi ImageKit
+IMAGEKIT_PUBLIC_KEY=your_imagekit_public_key
+IMAGEKIT_PRIVATE_KEY=your_imagekit_private_key
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id
+
+# Konfigurasi Cloudinary
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+# Pengaturan Upload
+UPLOAD_FOLDER=users
+```
+
+### API Endpoints
+
+**Manajemen User dengan Upload File:**
+
+- `POST /backoffice/users` (multipart/form-data) — Buat user dengan file `photo` opsional
+- `PATCH /backoffice/users/:id` (multipart/form-data) — Update user dengan file `photo` opsional
+- `POST /backoffice/users/:id/photo` — Ganti foto user saja
+- `DELETE /backoffice/users/:id/photo` — Hapus foto user dan clear field DB
+
+**Contoh Request (multipart/form-data):**
+```bash
+curl -X POST http://localhost:3000/backoffice/users \
+  -F "username=johndoe" \
+  -F "email=john@example.com" \
+  -F "name=John Doe" \
+  -F "password=password123" \
+  -F "roleId=role-uuid-here" \
+  -F "photo=@/path/to/image.jpg"
+```
+
+### Validasi File
+
+- **Format yang diizinkan**: `jpeg`, `jpg`, `png`, `webp`, `gif`
+- **Ukuran file maksimum**: `5MB` (dapat dikonfigurasi)
+- **Metode penyimpanan**: File ditangani di memory menggunakan `multer.memoryStorage()`
+- **Processing**: File dikonversi ke base64 untuk cloud upload
 
 ---
 
 ## 📚 Dokumentasi API
 
-Akses Swagger di Gateway setelah aplikasi berjalan:
+Akses Swagger UI di gateway setelah aplikasi berjalan:
 
 ```bash
 http://localhost:3000/docs
 ```
 
-Swagger menggabungkan dokumentasi dari:
+Swagger mengagregasi docs dari:
 
 - `/docs-json/auth` (Auth Service)
 - `/docs-json/backoffice` (Backoffice Service)
 
-Contoh endpoint:
+Contoh endpoints:
 
 ```bash
 GET /auth/login
@@ -237,19 +310,19 @@ GET /backoffice/users
 
 ## 📜 Logging
 
-Logging diimplementasikan menggunakan **Winston** pada service `gateway` dengan integrasi ke **Elasticsearch** untuk analisis log di lingkungan produksi. Fitur utama:
+Logging diimplementasikan menggunakan **Winston** di layanan `gateway` dengan integrasi Elasticsearch untuk analisis log produksi. Fitur utama:
 
-- Log disimpan dalam format JSON untuk memudahkan parsing dan pencarian di Elasticsearch.
-- Output log tersedia di console (untuk dev) dan dikirim ke Elasticsearch saat deploy.
+- Log disimpan dalam format JSON untuk kemudahan parsing dan pencarian di Elasticsearch.
+- Log output ke console di development dan dikirim ke Elasticsearch di production.
 - Konfigurasi logger dapat disesuaikan di `libs/logger/src/winston.config.ts`.
 
-**Variabel Environment untuk Logging** (tambahkan di `.env` pada `gateway`):
+**Environment Variables untuk Logging**:
 
-| Variabel | Deskripsi |
-|-----------------------|--------------------------------------------------------|
-| `ELASTICSEARCH_URL` | URL untuk koneksi ke Elasticsearch (contoh: `http://localhost:9200`) |
-| `ES_USERNAME` | Untuk username ECS |
-| `ES_PASSWORD` | Untuk password ECS |
+| Variable             | Deskripsi                                                      |
+|----------------------|----------------------------------------------------------------|
+| `ELASTICSEARCH_URL`  | URL koneksi Elasticsearch (contoh: `http://localhost:9200`)   |
+| `ES_USERNAME`        | Username Elasticsearch                                         |
+| `ES_PASSWORD`        | Password Elasticsearch                                         |
 
 **Contoh Konfigurasi**:
 
@@ -259,25 +332,24 @@ ES_USERNAME=elastic
 ES_PASSWORD=changeme
 ```
 
-> 📌 Pastikan Elasticsearch berjalan dan dapat diakses melalui `ELASTICSEARCH_URL` sebelum menjalankan `gateway`.
+> 📌 Pastikan Elasticsearch berjalan dan dapat diakses melalui `ELASTICSEARCH_URL` sebelum menjalankan gateway.
 
 ---
 
 ## 🧪 Testing
 
-### Unit Test per Service
+### Unit Test per Layanan
 
 ```bash
 pnpm test:auth
 pnpm test:backoffice
-pnpm test:gateway
 ```
 
 ---
 
 ## 📦 Build
 
-Build setiap service untuk produksi:
+Build setiap layanan untuk production:
 
 ```bash
 pnpm build --filter apps/auth-svc
@@ -295,13 +367,13 @@ pnpm build:all
 
 ## 🗂️ Konfigurasi Environment
 
-Setiap service wajib memiliki file environment di direktori masing-masing:
+Setiap layanan harus memiliki file environment sendiri di direktorinya:
 
 ```plaintext
 .apps/
 ├── api-gateway/
 │   ├── .env
-│   └── .env-example 
+│   └── .env-example
 ├── auth-svc/
 │   ├── .env
 │   └── .env-example
@@ -310,7 +382,7 @@ Setiap service wajib memiliki file environment di direktori masing-masing:
     └── .env-example
 ```
 
-**File `.env-example`** di root dan tiap service berisi daftar variabel yang perlu diisi, contoh:
+Setiap `.env-example` di root dan folder layanan berisi daftar variabel yang harus diisi, contoh:
 
 ```env
 # .env-example
@@ -319,14 +391,22 @@ DATABASE_URL=
 JWT_SECRET=
 SERVICE_INTERNAL_KEY=
 ELASTICSEARCH_URL=
+
+# Konfigurasi Cloud Upload
+STORAGE_PROVIDER=s3
+AWS_ACCESS_KEY=
+AWS_SECRET_KEY=
+AWS_REGION=
+AWS_BUCKET_NAME=
+UPLOAD_FOLDER=users
 ```
 
-**Jangan lupa** load environment variables pada setiap service sebelum menjalankan aplikasi:
+**Ingat** untuk load environment variables sebelum menjalankan setiap layanan:
 
 ```bash
-# di tiap service
+# di setiap folder layanan
 cp .env-example .env
-# kemudian edit .env sesuai kebutuhan
+# lalu edit .env sesuai kebutuhan
 ```
 
 ---
@@ -335,7 +415,7 @@ cp .env-example .env
 
 ### Prisma
 
-- **Generate Schema**: Selalu jalankan perintah berikut setelah mengubah `schema.prisma`:
+- **Generate Schema**: Selalu jalankan setelah mengubah `schema.prisma`:
   
   ```bash
   pnpm prisma generate
@@ -343,19 +423,20 @@ cp .env-example .env
 
 ### Code Sharing
 
-- **Manfaatkan `libs`**: Simpan kode yang dapat digunakan ulang di `libs`, seperti:
-  - DTO (Data Transfer Objects)
+- **Manfaatkan `libs`**: Simpan kode yang dapat digunakan ulang seperti:
+  - DTOs (Data Transfer Objects)
   - Guards
   - Middleware
-    Ini menjaga kode tetap modular dan mencegah duplikasi.
+  - Upload strategies
+  Ini menjaga kode tetap modular dan menghindari duplikasi.
 
 ### Dokumentasi API
 
-- **Swagger**: Akses dokumentasi API hanya melalui Gateway (`/docs`). Pastikan Gateway berjalan terlebih dahulu.
+- **Swagger**: Hanya akses melalui Gateway (`/docs`). Pastikan gateway berjalan terlebih dahulu.
 
-### Permission Management
+### Manajemen Permission
 
-- **Membuat Permission Baru**: Tambahkan permission di controller dengan dekorator `@Permission`:
+- **Membuat Permission Baru**: Tambahkan permission di controller menggunakan decorator `@Permission`:
 
   ```typescript
   import { Permission } from '@libs/common/src';
@@ -364,161 +445,152 @@ cp .env-example .env
   async createData() {}
   ```
 
-  **Penjelasan Parameter**:
-  1. **Nama Permission**: Nama unik untuk permission (contoh: `CREATE_DATA`).
-  2. **Nama Modul**: Nama modul terkait (contoh: `Roles`).
-  3. **Deskripsi Permission**: Deskripsi singkat untuk permission (contoh: `Create Role`).
-  4. **Sinkronisasi ke Database**: Jalankan perintah berikut untuk memindai dekorator `@Permission` dan menyimpan permission ke database agar dapat diassign ke role:
+  **Parameter Decorator**:
+  1. **Nama Permission** (contoh: `CREATE_DATA`)
+  2. **Nama Module** (contoh: `Roles`)
+  3. **Deskripsi Permission** (contoh: `Create Role`)
 
-     ```bash
-     pnpm gen:permissions
-     ```
+  Untuk sync dengan database:
 
-     > ℹ️ Perintah `pnpm gen:permissions` hanya memindai dekorator `@Permission` di service `backoffice`. Untuk service lain, tambahkan perintah khusus di `package.json`.
+  ```bash
+  pnpm gen:permissions
+  ```
+
+  > ℹ️ Ini hanya scan layanan `backoffice` secara default. Untuk layanan lain, tambahkan script custom di `package.json`.
 
 ### Audit Trail
 
-## 1. Import Module
+1. **Import Module**
 
-```ts
-// In AppModule or feature module
-import { AuditTrailModule } from "@libs/audit-trail";
+   ```ts
+   import { AuditTrailModule } from '@libs/audit-trail';
 
-@Module({
-  imports: [AuditTrailModule],
-})
-export class AppModule {}
-```
+   @Module({
+     imports: [AuditTrailModule],
+   })
+   export class AppModule {}
+   ```
 
-## 2. Apply Middleware (for UPDATE / DELETE routes) pada module
+2. **Apply Middleware** (untuk route UPDATE/DELETE)
 
-Supaya dapet `oldData` sebelum update/delete, apply middleware ini di Module:
+   ```ts
+   import {
+     MiddlewareConsumer,
+     Module,
+     NestModule,
+     RequestMethod,
+   } from '@nestjs/common';
+   import {
+     AuditTrailService,
+     createFetchOldEntityMiddleware,
+   } from '@libs/audit-trail';
 
-```ts
-import { 
-  MiddlewareConsumer, 
-  Module, 
-  NestModule, 
-  RequestMethod 
-} from '@nestjs/common';
-import {
-  AuditTrailService,
-  createFetchOldEntityMiddleware,
-} from '@libs/audit-trail';
+   @Module({
+     providers: [AuditTrailService],
+   })
+   export class ProductModule implements NestModule {
+     configure(consumer: MiddlewareConsumer) {
+       consumer
+         .apply(createFetchOldEntityMiddleware('product'))
+         .forRoutes({ path: 'products/:id', method: RequestMethod.PATCH });
 
-@Module({
-  providers: [AuditTrailService],
-})
-export class ProductModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(createFetchOldEntityMiddleware('product'))
-      .forRoutes({ path: 'products/:id', method: RequestMethod.PATCH });
+       consumer
+         .apply(createFetchOldEntityMiddleware('product'))
+         .forRoutes({ path: 'products/:id', method: RequestMethod.DELETE });
+     }
+   }
+   ```
 
-    consumer
-      .apply(createFetchOldEntityMiddleware('product'))
-      .forRoutes({ path: 'products/:id', method: RequestMethod.DELETE });
-  }
-}
-```
+3. **Apply Interceptor & Decorator di Controller**
 
-## 3. Apply Interceptor & Decorator in Controllers
+   ```ts
+   import {
+     AuditTrailInterceptor,
+     Audit,
+     AuditAction,
+   } from '@libs/audit-trail';
+   ```
 
-Import interceptor & decorator di atas file controller:
+   Gunakan pada method controller:
 
-```ts
-import {
-  AuditTrailInterceptor,
-  Audit,
-  AuditAction,
-} from '@libs/audit-trail';
-```
+   ```ts
+   @UseInterceptors(AuditTrailInterceptor)
+   @Controller('products')
+   export class ProductController {
+     constructor(private readonly productService: ProductService) {}
 
-Lalu pake di controller dan method-method:
+     @Get()
+     @Audit({ entity: 'Product', action: AuditAction.GET })
+     async findAll() {
+       return this.productService.findAll();
+     }
 
-```ts
-@UseInterceptors(AuditTrailInterceptor)
-@Controller('products')
-export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+     @Get(':id')
+     @Audit({
+       entity: 'Product',
+       action: AuditAction.SHOW,
+       getEntityId: (args) => args[0]?.id,
+     })
+     async findOne(@Param('id') id: string) {
+       return this.productService.findOne(id);
+     }
 
-  // GET all items
-  @Get()
-  @Audit({ entity: 'Product', action: AuditAction.GET })
-  async findAll() {
-    return this.productService.findAll();
-  }
+     @Post()
+     @Audit({
+       entity: 'Product',
+       action: AuditAction.CREATE,
+       getChanges: (_, res) => ({ before: null, after: res }),
+     })
+     async create(@Body() dto: CreateProductDto) {
+       return this.productService.create(dto);
+     }
 
-  // GET detail
-  @Get(':id')
-  @Audit({
-    entity: 'Product',
-    action: AuditAction.SHOW,
-    getEntityId: (args) => args[0]?.id,
+     @Patch(':id')
+     @Audit({
+       entity: 'Product',
+       action: AuditAction.UPDATE,
+       getEntityId: (args) => args[0]?.id,
+       getChanges: (args, result) => ({ before: args[1]?.oldData, after: result }),
+     })
+     async update(
+       @Param('id') id: string,
+       @Body() dto: UpdateProductDto,
+     ) {
+       return this.productService.update(id, dto);
+     }
 
-  })
-  async findOne(@Param('id') id: string) {
-    return this.productService.findOne(id);
-  }
-
-  // POST create
-  @Post()
-  @Audit({
-    entity: 'Product',
-    action: AuditAction.CREATE,
-    getChanges: (_, res) => ({ before: null, after: res }),
-  })
-  async create(@Body() dto: CreateProductDto) {
-    return this.productService.create(dto);
-  }
-
-  // PATCH update
-  @Patch(':id')
-  @Audit({
-    entity: 'Product',
-    action: AuditAction.UPDATE,
-    getEntityId: (args) => args[0]?.id,
-    getChanges: (args, result) => ({
-      before: args[1]?.oldData,
-      after: result,
-    }),
-  })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateProductDto,
-  ) {
-    return this.productService.update(id, dto);
-  }
-
-  // DELETE item
-  @Delete(':id')
-  @Audit({
-    entity: 'Product',
-    action: AuditAction.DELETE,
-    getEntityId: ([req]) => req.params.id,
-    getChanges: ([req]) => ({ before: req.oldData, after: null }),
-  })
-  async remove(@Param('id') id: string) {
-    return this.productService.remove(id);
-  }
-}
-```
+     @Delete(':id')
+     @Audit({
+       entity: 'Product',
+       action: AuditAction.DELETE,
+       getEntityId: ([req]) => req.params.id,
+       getChanges: ([req]) => ({ before: req.oldData, after: null }),
+     })
+     async remove(@Param('id') id: string) {
+       return this.productService.remove(id);
+     }
+   }
+   ```
 
 ### Tips Tambahan
 
-- **Konsistensi Penamaan**: Gunakan penamaan yang konsisten untuk permission dan modul agar mudah dipahami tim.
-- **Dokumentasi Kode**: Tambahkan komentar pada kode yang kompleks untuk mempermudah pemeliharaan.
-- **Testing**: Tulis unit test untuk kode di setiap `module` untuk memastikan fungsionalitas terjaga.
-- **Environment Variables**: Simpan konfigurasi sensitif di `.env` dan hindari hardcoding.
+- **Konsistensi Penamaan**: Jaga nama permission dan module tetap konsisten di seluruh codebase.
+- **Komentar Kode**: Tambahkan komentar untuk logic yang kompleks guna memudahkan maintenance.
+- **Testing**: Tulis unit test untuk setiap module untuk memastikan fungsionalitas.
+- **Environment Variables**: Simpan config sensitif di `.env`; hindari hardcode.
+- **File Upload**: Gunakan nama field yang sesuai dalam multipart form (contoh: `photo` untuk gambar user).
 
 ---
 
 ## 🛠️ Troubleshooting
 
-- **Prisma Gagal Generate**: Periksa koneksi database di `DATABASE_URL` dan pastikan schema valid.
-- **Port Conflict**: Pastikan port di `.env` tidak bentrok antar-service.
-- **Swagger Tidak Muncul**: Pastikan Gateway berjalan dan endpoint `/docs-json` dari setiap service dapat diakses.
-- **Permission Error**: Verifikasi bahwa dekorator `@Permission` menggunakan import dari `@libs/common/src`.
-- **Logging Tidak Muncul di Elasticsearch**: Periksa variabel `ELASTICSEARCH_URL`, serta pastikan Elasticsearch berjalan dan dapat diakses.
-
----
+- **Prisma Generate Gagal**: Periksa `DATABASE_URL` dan validitas schema Prisma.
+- **Konflik Port**: Pastikan setiap layanan memiliki port unik di `.env`-nya.
+- **Swagger Hilang**: Jalankan gateway dan verifikasi endpoint `/docs-json` untuk setiap layanan.
+- **Error Permission**: Pastikan `@Permission` import dari `@libs/common/src`.
+- **Masalah Elasticsearch Logging**: Verifikasi `ELASTICSEARCH_URL` dan pastikan Elasticsearch dapat dijangkau.
+- **Masalah File Upload**: 
+  - Periksa `STORAGE_PROVIDER` sudah diset dengan benar di `.env`
+  - Verifikasi credential cloud provider valid
+  - Pastikan format dan ukuran file memenuhi persyaratan validasi
+  - Periksa konfigurasi multer dan nama field sesuai dengan frontend
